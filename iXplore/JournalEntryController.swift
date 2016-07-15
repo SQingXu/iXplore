@@ -11,35 +11,40 @@ import MapKit
 class JournalEntryController{
     static var sharedInstance = JournalEntryController()
     
-    var entry1 = JournalEntry(coordinate: CLLocationCoordinate2D(latitude: -31.906764,longitude: 17.4164983), title: "0605")
-    var entry2 = JournalEntry(coordinate: CLLocationCoordinate2D(latitude: -34.906764,longitude: 20.4164983), title: "0606")
-    var entry3 = JournalEntry(coordinate: CLLocationCoordinate2D(latitude: -30.906764,longitude: 18.4164983), title: "0607")
-    var entry4 = JournalEntry(coordinate: CLLocationCoordinate2D(latitude: -29.906764,longitude: 19.4164983), title: "0608")
-    var entry5 = JournalEntry(coordinate: CLLocationCoordinate2D(latitude: -28.906764,longitude: 18.4164983), title: "0609")
+    var currentEntries: [JournalEntry] = []
     
-    
-    var currentEntries:[JournalEntry]
-    
-    private init(){
-        currentEntries = [entry1,entry2,entry3,entry4,entry5]
-    }
-    func getCurrentEntries()->[JournalEntry]{
-        return currentEntries
-    }
-    func getStringEntries()->[String]{
-        var stringList = [String]()
-        for entry in currentEntries{
-            stringList.append(entry.title!)
-        }
-        return stringList
-    }
-    func addEntry(title:String, notes:String, dates: String, latitude:String, longitude:String){
-        let coordinates = CLLocationCoordinate2D(latitude: Double(latitude)!, longitude: Double(longitude)!)
-        let newEntry = JournalEntry(coordinate: coordinates, title: title)
-        newEntry.dates = dates
-        newEntry.notes = notes
+    private init() {
+        let manager = NSFileManager.defaultManager()
+        let document = manager.URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask)[0]
         
+        do {
+            let fileList = try manager.contentsOfDirectoryAtURL(document, includingPropertiesForKeys: nil, options: [])
+            for file in fileList {
+                if let entry = NSKeyedUnarchiver.unarchiveObjectWithFile(file.path!) as? JournalEntry {
+                    currentEntries.append(entry)
+                }
+            }
+        }
+        catch {}
+    }
+    
+    func addEntry(newEntry: JournalEntry){
         currentEntries.append(newEntry)
+        let manager = NSFileManager.defaultManager()
+        let document = manager.URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask)[0]
+        let url = document.URLByAppendingPathComponent(newEntry.ID.UUIDString)
+        NSKeyedArchiver.archiveRootObject(newEntry, toFile: url.path!)
+    }
+    func removeEntry(index:Int){
+        
+        let manager = NSFileManager.defaultManager()
+        let document = manager.URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask)[0]
+        let url = document.URLByAppendingPathComponent(currentEntries[index].ID.UUIDString)
+        currentEntries.removeAtIndex(index)
+        do {
+            try manager.removeItemAtURL(url)
+        } catch {}
+        
     }
     
 }
